@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+    // The app owner — must match APP_OWNER_UID in src/config/app.ts.
+    function isOwner(uid) {
+      return uid == 'OhSGh0zrLVgqg7M8pwdkrrw5yqB2';
+    }
+
+    // Reads allowed when: it's your own profile; you're the admin this devotee
+    // is assigned to (Students list & search); or the profile is a mentor
+    // (so devotees can validate a mentor code and show their mentor's name).
+    match /users/{uid} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == uid ||
+        resource.data.adminId == request.auth.uid ||
+        resource.data.role == 'admin'
+      );
+
+      // On sign-up a user creates their own profile. Enforce the shape, a valid
+      // role, and that a devotee links to an existing mentor. Crucially, a new
+      // mentor can only create themselves as UNAPPROVED (approved:false) — only
+      // the owner's own account may be created pre-approved. This is what stops
+      // anyone from self-granting mentor access.
+      allow create: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.email is string
+        && request.resource.data.role in ['admin', 'user']
+        && (
+          request.resource.data.role == 'admin'
+            ? (
+                request.resource.data.keys().hasOnly(
+                  ['name', 'email', 'role', 'adminId', 'avatar', 'approved', 'rejected', 'mentorCode'])
+                && request.resource.data.mentorCode is string
+                && request.resource.data.rejected == false
+                && (request.resource.data.approved == false || isOwner(uid))
+              )
+            : (
+                request.resource.data.keys().hasOnly(['name', 'email', 'role', 'adminId', 'avatar'])
+                && exists(/databases/$(database)/documents/users/$(request.resource.data.adminId))
+              )
+        );
+
+      // Self-service: change only your own avatar. The owner may additionally
+      // flip approved/rejected on any mentor (the in-app Approvals screen).
+      allow update: if isSignedIn() && (
+        (
+          request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['avatar'])
+          && request.resource.data.avatar is string
+          && request.resource.data.avatar.size() <= 40
+        ) || (
+          isOwner(request.auth.uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['approved', 'rejected'])
+        )
+      );
+
+      // A user may delete their own profile (account removal). The app blocks
+      // mentors with assigned devotees beforehand.
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Short mentor codes → mentor id. Readable by any signed-in user (devotees
+    // resolve a code at join time); a mentor may only create their own mapping.
+    match /mentorCodes/{code} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['mentorId'])
+        && request.resource.data.mentorId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // Devotees own their entries. Admins get read-only access to the entries
+    // of devotees assigned to them.
+    match /entries/{entryId} {
+      // Owner is encoded in the id ("{uid}_{date}"), so this works even when
+      // the document doesn't exist yet (resource == null on a missing doc).
+      function ownerFromId() {
+        return entryId.split('_')[0];
+      }
+      // Single-document reads — including today's not-yet-created entry where
+      // resource is null (so we authorize from the id, not the data).
+      allow get: if isSignedIn() && (
+        ownerFromId() == request.auth.uid ||
+        (resource != null && userDoc(resource.data.userId).adminId == request.auth.uid)
+      );
+      // Queries — authorize by the userId FIELD so `where userId == ...` is
+      // provably safe (Firestore can't prove an id-derived value matches a
+      // query filter, which is why list queries were being denied).
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        userDoc(resource.data.userId).adminId == request.auth.uid
+      );
+      allow create, update: if isSignedIn()
+        // only confirmed emails may write entries
+        && request.auth.token.email_verified == true
+        && request.resource.data.userId == request.auth.uid
+        // one entry per user per day is enforced by the deterministic id
+        && entryId == request.auth.uid + '_' + request.resource.data.date
+        // shape + sane bounds so no junk/oversized data can be stored
+        && request.resource.data.keys().hasOnly(
+             ['id', 'userId', 'date', 'chantingRounds', 'readingMinutes', 'createdAt', 'updatedAt'])
+        && request.resource.data.date is string
+        && request.resource.data.chantingRounds is int
+        && request.resource.data.chantingRounds >= 0
+        && request.resource.data.chantingRounds <= 1000
+        && request.resource.data.readingMinutes is int
+        && request.resource.data.readingMinutes >= 0
+        && request.resource.data.readingMinutes <= 1440;
+      // Users may delete their own entries (used during account removal).
+      allow delete: if isSignedIn() && ownerFromId() == request.auth.uid;
+    }
+  }
+}
