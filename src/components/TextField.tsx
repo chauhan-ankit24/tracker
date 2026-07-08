@@ -21,8 +21,19 @@ export function TextField({ label, icon, secure, error, ...rest }: Props) {
       <Text className="text-sm font-medium text-ink-700 mb-2 ml-1">{label}</Text>
       <View
         className={`flex-row items-center bg-white rounded-2xl px-4 border ${
-          error ? 'border-red-300' : focused ? 'border-saffron-400' : 'border-cloud-300'
+          error ? 'border-red-300 bg-red-50/10' : focused ? 'border-saffron-500' : 'border-cloud-300'
         }`}
+        style={
+          focused && !error
+            ? {
+                shadowColor: colors.saffron[500],
+                shadowOffset: { width: 0, height: 0 },
+                shadowOpacity: 0.12,
+                shadowRadius: 6,
+                elevation: 3,
+              }
+            : undefined
+        }
       >
         {icon ? (
           <Ionicons

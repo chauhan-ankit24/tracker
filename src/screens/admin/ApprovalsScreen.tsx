@@ -10,9 +10,11 @@ import { AdminStackParamList } from '../../navigation/types';
 import { Avatar } from '../../components/Avatar';
 import { EmptyState } from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
+import { PressableScale } from '../../components/PressableScale';
 import { getPendingMentors, approveMentor, rejectMentor } from '../../services/mentors';
 import { AppUser } from '../../types';
 import { colors } from '../../theme/colors';
+import { showConfirmAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'Approvals'>;
 
@@ -52,22 +54,25 @@ export function ApprovalsScreen({ navigation }: Props) {
   };
 
   const confirmReject = (mentor: AppUser) => {
-    Alert.alert('Reject mentor', `Reject ${mentor.name}'s mentor request?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reject', style: 'destructive', onPress: () => act(mentor, false) },
-    ]);
+    showConfirmAlert(
+      'Reject mentor',
+      `Reject ${mentor.name}'s mentor request?`,
+      () => act(mentor, false),
+      'Reject'
+    );
   };
 
   return (
     <SafeAreaView className="flex-1 bg-cloud-100" edges={['top']}>
       <View className="flex-row items-center px-5 pt-2 pb-4">
-        <Pressable
+        <PressableScale
           onPress={() => navigation.goBack()}
           hitSlop={10}
+          activeScale={0.9}
           className="w-10 h-10 rounded-2xl bg-white border border-cloud-200 items-center justify-center mr-3"
         >
           <Ionicons name="chevron-back" size={20} color={colors.ink[700]} />
-        </Pressable>
+        </PressableScale>
         <View className="flex-1">
           <Text className="text-xs text-saffron-600 font-medium">Admin</Text>
           <Text className="text-xl font-bold text-ink-900">Mentor approvals</Text>
@@ -116,22 +121,24 @@ export function ApprovalsScreen({ navigation }: Props) {
                 </View>
               </View>
               <View className="flex-row mt-3 gap-3">
-                <Pressable
+                <PressableScale
                   onPress={() => act(mentor, true)}
                   disabled={busyId === mentor.id}
-                  className="flex-1 flex-row items-center justify-center rounded-xl py-3 bg-saffron-500"
+                  activeScale={0.96}
+                  className="flex-1 flex-row items-center justify-center rounded-xl py-3 bg-saffron-500 shadow-md shadow-saffron-500/10"
                 >
                   <Ionicons name="checkmark" size={16} color={colors.white} />
                   <Text className="text-sm font-semibold text-white ml-1.5">Approve</Text>
-                </Pressable>
-                <Pressable
+                </PressableScale>
+                <PressableScale
                   onPress={() => confirmReject(mentor)}
                   disabled={busyId === mentor.id}
+                  activeScale={0.96}
                   className="flex-1 flex-row items-center justify-center rounded-xl py-3 bg-cloud-200"
                 >
                   <Ionicons name="close" size={16} color={colors.ink[500]} />
                   <Text className="text-sm font-semibold text-ink-500 ml-1.5">Reject</Text>
-                </Pressable>
+                </PressableScale>
               </View>
             </Animated.View>
           ))

@@ -10,7 +10,7 @@ service cloud.firestore {
     }
     // The app owner — must match APP_OWNER_UID in src/config/app.ts.
     function isOwner(uid) {
-      return uid == 'OhSGh0zrLVgqg7M8pwdkrrw5yqB2';
+      return uid == 'N63uLUj9WDdCbYAhT5S1dHtMsQJ3';
     }
 
     // Reads allowed when: it's your own profile; you're the admin this devotee
