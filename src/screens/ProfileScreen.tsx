@@ -12,6 +12,7 @@ import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
 import { AvatarPicker } from '../components/AvatarPicker';
+import { PressableScale } from '../components/PressableScale';
 import { useAuth } from '../context/AuthContext';
 import {
   deleteOwnAccount,
@@ -22,6 +23,8 @@ import {
 import { SUPPORT_WHATSAPP, SUPPORT_MESSAGE } from '../config/support';
 import { isOwner } from '../config/app';
 import { colors } from '../theme/colors';
+
+import { showConfirmAlert } from '../utils/alert';
 
 export function ProfileScreen() {
   const { user, setUser, signOut } = useAuth();
@@ -70,10 +73,12 @@ export function ProfileScreen() {
   };
 
   const confirmSignOut = () => {
-    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign out', style: 'destructive', onPress: () => signOut() },
-    ]);
+    showConfirmAlert(
+      'Sign out',
+      'Are you sure you want to sign out?',
+      signOut,
+      'Sign out'
+    );
   };
 
   const runDelete = async () => {
@@ -91,15 +96,13 @@ export function ProfileScreen() {
 
   const confirmDelete = () => {
     const isMentor = user?.role === 'admin';
-    Alert.alert(
+    showConfirmAlert(
       'Delete account',
       isMentor
         ? 'This permanently deletes your mentor account and your own entries. It is only allowed when no devotees are assigned to you. This cannot be undone.'
         : 'This permanently deletes your account and all of your entries. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: runDelete },
-      ],
+      runDelete,
+      'Delete'
     );
   };
 
@@ -110,12 +113,12 @@ export function ProfileScreen() {
       <ScreenHeader title="Profile" subtitle="Your account" />
 
       <Animated.View entering={FadeInDown.duration(450)} className="items-center mb-6 mt-2">
-        <Pressable onPress={() => setPickerOpen((o) => !o)}>
+        <PressableScale onPress={() => setPickerOpen((o) => !o)} activeScale={0.92}>
           <Avatar name={user.name} avatarId={user.avatar} size={96} shadow />
           <View className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-white items-center justify-center border border-cloud-200">
             <Ionicons name="pencil" size={14} color={colors.saffron[600]} />
           </View>
-        </Pressable>
+        </PressableScale>
         <Text className="text-xl font-bold text-ink-900 mt-4">{user.name}</Text>
         <View className="flex-row items-center bg-saffron-50 px-3 py-1 rounded-full mt-2">
           <Ionicons
@@ -150,30 +153,32 @@ export function ProfileScreen() {
       </Card>
 
       {isOwner(user.id) ? (
-        <Pressable
-          onPress={() => navigation.navigate('Approvals')}
-          className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 border border-cloud-200 mt-4"
-          style={{
-            shadowColor: '#1F2430',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.04,
-            shadowRadius: 10,
-            elevation: 1,
-          }}
-        >
-          <View className="w-9 h-9 rounded-full bg-saffron-100 items-center justify-center mr-3">
-            <Ionicons name="shield-checkmark-outline" size={18} color={colors.saffron[600]} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-semibold text-ink-900">Mentor approvals</Text>
-            <Text className="text-xs text-ink-400 mt-0.5">Review and approve new mentors</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.ink[400]} />
-        </Pressable>
+          <PressableScale
+            onPress={() => navigation.navigate('Approvals')}
+            activeScale={0.98}
+            className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 border border-cloud-200 mt-4"
+            style={{
+              shadowColor: '#1F2430',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.04,
+              shadowRadius: 10,
+              elevation: 1,
+            }}
+          >
+            <View className="w-9 h-9 rounded-full bg-saffron-100 items-center justify-center mr-3">
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.saffron[600]} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-ink-900">Mentor approvals</Text>
+              <Text className="text-xs text-ink-400 mt-0.5">Review and approve new mentors</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.ink[400]} />
+          </PressableScale>
       ) : null}
 
-      <Pressable
+      <PressableScale
         onPress={openWhatsApp}
+        activeScale={0.98}
         className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 border border-cloud-200 mt-4"
         style={{
           shadowColor: '#1F2430',
@@ -191,22 +196,23 @@ export function ProfileScreen() {
           <Text className="text-xs text-ink-400 mt-0.5">Questions or suggestions? Message us</Text>
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.ink[400]} />
-      </Pressable>
+      </PressableScale>
 
       <View className="mt-6">
         <Button label="Log Out" variant="secondary" icon="log-out-outline" onPress={confirmSignOut} />
       </View>
 
-      <Pressable
+      <PressableScale
         onPress={confirmDelete}
         disabled={deleting}
+        activeScale={0.95}
         className="flex-row items-center justify-center mt-8 py-2"
       >
         <Ionicons name="trash-outline" size={16} color="#DC2626" />
         <Text className="text-sm font-medium text-red-600 ml-2">
           {deleting ? 'Deleting…' : 'Delete my account'}
         </Text>
-      </Pressable>
+      </PressableScale>
 
       <Text className="text-xs text-ink-400 text-center mt-8">
         Bhakti Tracker v{Constants.expoConfig?.version ?? '1.0.0'}
@@ -244,7 +250,7 @@ function MentorCodeRow({ code }: { code: string }) {
     Alert.alert('Copied', 'Your mentor code has been copied to the clipboard.');
   };
   return (
-    <Pressable onPress={copy} className="flex-row items-center py-3">
+    <PressableScale onPress={copy} activeScale={0.97} className="flex-row items-center py-3">
       <View className="w-9 h-9 rounded-full bg-saffron-100 items-center justify-center mr-3">
         <Ionicons name="key-outline" size={17} color={colors.saffron[600]} />
       </View>
@@ -255,7 +261,7 @@ function MentorCodeRow({ code }: { code: string }) {
         </Text>
       </View>
       <Ionicons name="copy-outline" size={18} color={colors.ink[400]} />
-    </Pressable>
+    </PressableScale>
   );
 }
 

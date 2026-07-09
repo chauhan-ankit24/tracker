@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Pressable, TextInput } from 'react-native';
+import { View, Text, TextInput } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -9,6 +9,13 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../theme/colors';
+import { PressableScale } from './PressableScale';
+
+interface Preset {
+  label: string;
+  value: number;
+  type: 'add' | 'set';
+}
 
 interface Props {
   label: string;
@@ -19,6 +26,7 @@ interface Props {
   max?: number;
   step?: number;
   unit?: string;
+  presets?: Preset[];
 }
 
 /**
@@ -34,6 +42,7 @@ export function NumberStepper({
   max = 999,
   step = 1,
   unit,
+  presets,
 }: Props) {
   const scale = useSharedValue(1);
   const bump = () => {
@@ -91,6 +100,28 @@ export function NumberStepper({
 
         <StepButton icon="add" onPress={inc} disabled={value >= max} />
       </View>
+
+      {presets && presets.length > 0 ? (
+        <View className="flex-row justify-center gap-2 mt-4 pt-4 border-t border-cloud-200">
+          {presets.map((preset, idx) => (
+            <PressableScale
+              key={idx}
+              onPress={() => {
+                if (preset.type === 'set') {
+                  onChange(clamp(preset.value));
+                } else {
+                  onChange(clamp(value + preset.value));
+                }
+                bump();
+              }}
+              activeScale={0.92}
+              className="px-3.5 py-1.5 rounded-xl bg-saffron-50 border border-saffron-100"
+            >
+              <Text className="text-xs font-semibold text-saffron-700">{preset.label}</Text>
+            </PressableScale>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -105,9 +136,10 @@ function StepButton({
   disabled?: boolean;
 }) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
+      activeScale={0.88}
       className={`w-14 h-14 rounded-full items-center justify-center border ${
         disabled ? 'border-cloud-200 bg-cloud-100' : 'border-saffron-200 bg-saffron-50'
       }`}
@@ -117,6 +149,6 @@ function StepButton({
         size={26}
         color={disabled ? colors.ink[400] : colors.saffron[600]}
       />
-    </Pressable>
+    </PressableScale>
   );
 }

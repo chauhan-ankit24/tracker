@@ -10,16 +10,26 @@ export function StreakCard({ streak, delay = 0 }: { streak: number; delay?: numb
   return (
     <Animated.View
       entering={FadeInDown.duration(450).delay(delay)}
-      className="rounded-3xl overflow-hidden mb-4 p-6 bg-saffron-500"
+      className="relative rounded-3xl overflow-hidden mb-4 p-6 bg-saffron-500"
       style={{
         shadowColor: colors.saffron[600],
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-        elevation: 6,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.22,
+        shadowRadius: 16,
+        elevation: 4,
       }}
     >
-      <View className="flex-row items-center justify-between">
+      {/* Decorative background shapes for a premium, modern aesthetic */}
+      <View
+        className="absolute -right-8 -top-8 w-36 h-36 rounded-full bg-white/10"
+        pointerEvents="none"
+      />
+      <View
+        className="absolute -right-2 -bottom-10 w-28 h-28 rounded-full bg-white/5"
+        pointerEvents="none"
+      />
+
+      <View className="flex-row items-center justify-between z-10">
         <View>
           <Text className="text-saffron-100 text-sm font-medium">Current streak</Text>
           <View className="flex-row items-baseline mt-1">

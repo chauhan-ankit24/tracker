@@ -123,6 +123,11 @@ export function TodayScreen() {
               value={rounds}
               onChange={setRounds}
               max={200}
+              presets={[
+                { label: '+4', value: 4, type: 'add' },
+                { label: '+8', value: 8, type: 'add' },
+                { label: '16 Rounds', value: 16, type: 'set' },
+              ]}
             />
           </Animated.View>
 
@@ -135,6 +140,11 @@ export function TodayScreen() {
               step={5}
               max={720}
               unit="min"
+              presets={[
+                { label: '+15m', value: 15, type: 'add' },
+                { label: '+30m', value: 30, type: 'add' },
+                { label: '+60m', value: 60, type: 'add' },
+              ]}
             />
           </Animated.View>
 

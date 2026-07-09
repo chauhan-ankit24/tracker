@@ -11,6 +11,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { EmptyState } from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { Avatar } from '../../components/Avatar';
+import { PressableScale } from '../../components/PressableScale';
 import { useAuth } from '../../context/AuthContext';
 import { getStudentsForAdmin } from '../../services/entries';
 import { AppUser } from '../../types';
@@ -128,8 +129,9 @@ function StudentRow({
 }) {
   return (
     <Animated.View entering={FadeInDown.duration(360).delay(Math.min(index, 8) * 50)}>
-      <Pressable
+      <PressableScale
         onPress={onPress}
+        activeScale={0.97}
         className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 mb-3 border border-cloud-200"
         style={{
           shadowColor: '#1F2430',
@@ -147,7 +149,7 @@ function StudentRow({
           <Text className="text-xs text-ink-400 mt-0.5">{student.email}</Text>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.ink[400]} />
-      </Pressable>
+      </PressableScale>
     </Animated.View>
   );
 }
