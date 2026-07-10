@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Alert, AppState, AppStateStatus } from 'react-native';
+import { Alert, AppState, AppStateStatus, InteractionManager } from 'react-native';
 import * as Updates from 'expo-updates';
 
 /**
@@ -47,12 +47,18 @@ export function useOTAUpdates() {
       }
     };
 
-    checkForUpdate();
+    // Defer until after the first frame so a bad OTA state can't block launch.
+    const task = InteractionManager.runAfterInteractions(() => {
+      checkForUpdate();
+    });
 
     const onChange = (state: AppStateStatus) => {
       if (state === 'active') checkForUpdate();
     };
     const sub = AppState.addEventListener('change', onChange);
-    return () => sub.remove();
+    return () => {
+      task.cancel();
+      sub.remove();
+    };
   }, []);
 }

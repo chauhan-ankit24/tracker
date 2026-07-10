@@ -1,0 +1,17 @@
+# EAS upload rules (replaces .gitignore when this file exists).
+# Keep secrets out of git, but include .env so preview/production builds work.
+
+node_modules/
+.expo/
+dist/
+web-build/
+/android/
+/ios/
+.git/
+*.jks
+*.keystore
+credentials.json
+.env*.local
+
+# Upload .env to EAS Build (gitignored locally, not committed).
+!.env
