@@ -2,7 +2,7 @@
   "expo": {
     "name": "Bhakti Tracker",
     "slug": "bhakti-tracker",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "bhaktitracker",
@@ -26,7 +26,7 @@
     },
     "android": {
       "package": "com.bhakti.tracker",
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FBEAD0"
