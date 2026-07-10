@@ -3,6 +3,7 @@ import { Text, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../theme/colors';
+import { brandShadow } from '../theme/elevation';
 import { PressableScale } from './PressableScale';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
@@ -29,9 +30,10 @@ export function Button({
 }: Props) {
   const isDisabled = disabled || loading;
 
-  const base = 'flex-row items-center justify-center rounded-2xl py-4 px-6';
+  // min-h keeps every button a comfortable 52pt tap target regardless of content.
+  const base = 'flex-row items-center justify-center rounded-2xl py-4 px-6 min-h-[52px]';
   const styles: Record<Variant, string> = {
-    primary: 'bg-saffron-500 shadow-md shadow-saffron-500/10',
+    primary: 'bg-saffron-500',
     secondary: 'bg-saffron-100',
     ghost: 'bg-transparent',
   };
@@ -49,8 +51,14 @@ export function Button({
       disabled={isDisabled}
       className={className}
       activeScale={0.96}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      accessibilityLabel={label}
     >
-      <View className={`${base} ${styles[variant]} ${isDisabled ? 'opacity-50' : ''}`}>
+      <View
+        className={`${base} ${styles[variant]} ${isDisabled ? 'opacity-50' : ''}`}
+        style={variant === 'primary' && !isDisabled ? brandShadow() : undefined}
+      >
         {loading ? (
           <ActivityIndicator color={iconColor} />
         ) : (

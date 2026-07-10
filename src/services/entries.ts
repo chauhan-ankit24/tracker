@@ -24,13 +24,48 @@ function entryId(userId: string, date: string): string {
   return `${userId}_${date}`;
 }
 
+/** Legacy entry shape, before metrics became mentor-configurable. */
+interface LegacyEntry {
+  chantingRounds?: number;
+  readingMinutes?: number;
+}
+
+/**
+ * Normalizes any stored entry into the current `values` shape. Older documents
+ * kept fixed chantingRounds/readingMinutes; those map to the stable `chanting`
+ * and `reading` metric ids so historical data keeps showing up.
+ */
+function normalizeEntry(raw: DailyEntry & LegacyEntry): DailyEntry {
+  if (raw.values) {
+    return {
+      id: raw.id,
+      userId: raw.userId,
+      date: raw.date,
+      values: raw.values,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+    };
+  }
+  const values: Record<string, number> = {};
+  if (typeof raw.chantingRounds === 'number') values.chanting = raw.chantingRounds;
+  if (typeof raw.readingMinutes === 'number') values.reading = raw.readingMinutes;
+  return {
+    id: raw.id,
+    userId: raw.userId,
+    date: raw.date,
+    values,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
 export async function getEntryForDay(
   userId: string,
   date: string,
 ): Promise<DailyEntry | null> {
   const snap = await getDoc(doc(db, ENTRIES, entryId(userId, date)));
   if (!snap.exists()) return null;
-  return snap.data() as DailyEntry;
+  return normalizeEntry(snap.data() as DailyEntry & LegacyEntry);
 }
 
 export function getTodayEntry(userId: string): Promise<DailyEntry | null> {
@@ -39,8 +74,8 @@ export function getTodayEntry(userId: string): Promise<DailyEntry | null> {
 
 interface SaveInput {
   userId: string;
-  chantingRounds: number;
-  readingMinutes: number;
+  /** Metric id → value for the day. */
+  values: Record<string, number>;
 }
 
 /**
@@ -49,8 +84,7 @@ interface SaveInput {
  */
 export async function saveTodayEntry({
   userId,
-  chantingRounds,
-  readingMinutes,
+  values,
 }: SaveInput): Promise<DailyEntry> {
   const date = todayKey();
   const id = entryId(userId, date);
@@ -62,8 +96,7 @@ export async function saveTodayEntry({
     id,
     userId,
     date,
-    chantingRounds,
-    readingMinutes,
+    values,
     createdAt: existing.exists() ? (existing.data() as DailyEntry).createdAt : now,
     updatedAt: now,
   };
@@ -88,7 +121,7 @@ export async function saveTodayEntry({
 export async function getEntriesForUser(userId: string): Promise<DailyEntry[]> {
   const q = query(collection(db, ENTRIES), where('userId', '==', userId));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => d.data() as DailyEntry);
+  return snap.docs.map((d) => normalizeEntry(d.data() as DailyEntry & LegacyEntry));
 }
 
 /** Removes every entry belonging to a user (used when deleting their account). */
@@ -96,6 +129,22 @@ export async function deleteAllEntriesForUser(userId: string): Promise<void> {
   const q = query(collection(db, ENTRIES), where('userId', '==', userId));
   const snap = await getDocs(q);
   await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+}
+
+/**
+ * The most recent entry date (YYYY-MM-DD) for a user, or null if they've never
+ * logged. Reads only the `date` field — used for the at-risk activity view.
+ * Single-field equality query, so no composite index is required.
+ */
+export async function getLastEntryDate(userId: string): Promise<string | null> {
+  const q = query(collection(db, ENTRIES), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  let last: string | null = null;
+  snap.forEach((d) => {
+    const date = (d.data() as { date?: string }).date;
+    if (date && (last === null || date > last)) last = date;
+  });
+  return last;
 }
 
 /** All devotees assigned to a given admin/mentor. */

@@ -13,6 +13,7 @@ import { Button } from '../components/Button';
 import { Avatar } from '../components/Avatar';
 import { AvatarPicker } from '../components/AvatarPicker';
 import { PressableScale } from '../components/PressableScale';
+import { SettingsRow } from '../components/SettingsRow';
 import { useAuth } from '../context/AuthContext';
 import {
   deleteOwnAccount,
@@ -141,8 +142,6 @@ export function ProfileScreen() {
       />
 
       <Card delay={100}>
-        <InfoRow icon="person-outline" label="Name" value={user.name} />
-        <Divider />
         <InfoRow icon="mail-outline" label="Email" value={user.email} />
         <Divider />
         {user.role === 'admin' ? (
@@ -152,51 +151,25 @@ export function ProfileScreen() {
         )}
       </Card>
 
-      {isOwner(user.id) ? (
-          <PressableScale
+      <View className="gap-3 mt-4">
+        {isOwner(user.id) ? (
+          <SettingsRow
+            icon="shield-checkmark-outline"
+            title="Mentor approvals"
+            subtitle="Review and approve new mentors"
             onPress={() => navigation.navigate('Approvals')}
-            activeScale={0.98}
-            className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 border border-cloud-200 mt-4"
-            style={{
-              shadowColor: '#1F2430',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.04,
-              shadowRadius: 10,
-              elevation: 1,
-            }}
-          >
-            <View className="w-9 h-9 rounded-full bg-saffron-100 items-center justify-center mr-3">
-              <Ionicons name="shield-checkmark-outline" size={18} color={colors.saffron[600]} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-ink-900">Mentor approvals</Text>
-              <Text className="text-xs text-ink-400 mt-0.5">Review and approve new mentors</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.ink[400]} />
-          </PressableScale>
-      ) : null}
+          />
+        ) : null}
 
-      <PressableScale
-        onPress={openWhatsApp}
-        activeScale={0.98}
-        className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 border border-cloud-200 mt-4"
-        style={{
-          shadowColor: '#1F2430',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.04,
-          shadowRadius: 10,
-          elevation: 1,
-        }}
-      >
-        <View className="w-9 h-9 rounded-full bg-green-50 items-center justify-center mr-3">
-          <Ionicons name="logo-whatsapp" size={18} color="#25D366" />
-        </View>
-        <View className="flex-1">
-          <Text className="text-sm font-semibold text-ink-900">Help &amp; Support</Text>
-          <Text className="text-xs text-ink-400 mt-0.5">Questions or suggestions? Message us</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.ink[400]} />
-      </PressableScale>
+        <SettingsRow
+          icon="logo-whatsapp"
+          iconBg="bg-green-50"
+          iconColor="#25D366"
+          title="Help & Support"
+          subtitle="Questions or suggestions? Message us"
+          onPress={openWhatsApp}
+        />
+      </View>
 
       <View className="mt-6">
         <Button label="Log Out" variant="secondary" icon="log-out-outline" onPress={confirmSignOut} />

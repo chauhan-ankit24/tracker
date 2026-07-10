@@ -75,6 +75,14 @@ export function LoginScreen({ navigation }: Props) {
             <Text className="text-xl font-bold text-ink-900 mb-1">Welcome back</Text>
             <Text className="text-sm text-ink-400 mb-6">Sign in to continue your practice</Text>
 
+            {/* Lead with Google — the most-used sign-in path. */}
+            {!isExpoGo ? (
+              <>
+                <GoogleButton onPress={onGoogle} loading={googleLoading} />
+                <OrDivider label="or continue with email" />
+              </>
+            ) : null}
+
             <TextField
               label="Email"
               icon="mail-outline"
@@ -99,13 +107,6 @@ export function LoginScreen({ navigation }: Props) {
             ) : null}
 
             <Button label="Sign In" onPress={onSubmit} loading={loading} className="mt-2" />
-
-            {!isExpoGo ? (
-              <>
-                <OrDivider />
-                <GoogleButton onPress={onGoogle} loading={googleLoading} />
-              </>
-            ) : null}
 
             <View className="flex-row justify-center mt-6">
               <Text className="text-sm text-ink-400">New devotee? </Text>

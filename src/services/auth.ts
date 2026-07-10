@@ -11,6 +11,7 @@ import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 import { isOwner } from '../config/app';
 import { deleteAllEntriesForUser, getStudentsForAdmin } from './entries';
+import { deleteAllResponsesForUser } from './questionnaires';
 import { createMentorCode, resolveMentorCode } from './mentors';
 import { normalizeMentorCode } from '../utils/mentorCode';
 import { isApprovedMentor } from '../utils/roles';
@@ -188,6 +189,7 @@ export async function deleteOwnAccount(user: AppUser): Promise<void> {
 
   // Delete Firestore data while still authenticated, then the auth account.
   await deleteAllEntriesForUser(user.id);
+  await deleteAllResponsesForUser(user.id);
   await deleteDoc(doc(db, USERS, user.id));
   // May throw auth/requires-recent-login if the session is old.
   await deleteUser(current);

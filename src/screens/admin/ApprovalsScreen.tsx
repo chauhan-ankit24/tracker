@@ -14,6 +14,7 @@ import { PressableScale } from '../../components/PressableScale';
 import { getPendingMentors, approveMentor, rejectMentor } from '../../services/mentors';
 import { AppUser } from '../../types';
 import { colors } from '../../theme/colors';
+import { shadows } from '../../theme/elevation';
 import { showConfirmAlert } from '../../utils/alert';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'Approvals'>;
@@ -103,13 +104,7 @@ export function ApprovalsScreen({ navigation }: Props) {
               key={mentor.id}
               entering={FadeInDown.duration(360).delay(Math.min(i, 8) * 45)}
               className="bg-white rounded-2xl p-4 mb-3 border border-cloud-200"
-              style={{
-                shadowColor: '#1F2430',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.04,
-                shadowRadius: 10,
-                elevation: 1,
-              }}
+              style={shadows.sm}
             >
               <View className="flex-row items-center">
                 <View className="mr-3">

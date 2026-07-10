@@ -9,6 +9,8 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../theme/colors';
+import { shadows } from '../theme/elevation';
+import { MetricIcon } from './MetricIcon';
 import { PressableScale } from './PressableScale';
 
 interface Preset {
@@ -19,7 +21,7 @@ interface Preset {
 
 interface Props {
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: string;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -64,18 +66,10 @@ export function NumberStepper({
   };
 
   return (
-    <View className="bg-white rounded-2xl p-5 border border-cloud-200"
-      style={{
-        shadowColor: '#1F2430',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.05,
-        shadowRadius: 14,
-        elevation: 2,
-      }}
-    >
+    <View className="bg-white rounded-2xl p-5 border border-cloud-200" style={shadows.md}>
       <View className="flex-row items-center mb-4">
         <View className="w-9 h-9 rounded-full bg-saffron-100 items-center justify-center mr-3">
-          <Ionicons name={icon} size={18} color={colors.saffron[600]} />
+          <MetricIcon name={icon} size={18} color={colors.saffron[600]} />
         </View>
         <Text className="text-base font-semibold text-ink-700">{label}</Text>
       </View>

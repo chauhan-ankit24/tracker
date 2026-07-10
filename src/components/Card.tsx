@@ -2,6 +2,8 @@ import React from 'react';
 import { View, ViewProps } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { shadows } from '../theme/elevation';
+
 interface Props extends ViewProps {
   children: React.ReactNode;
   className?: string;
@@ -17,16 +19,7 @@ export function Card({ children, className = '', delay = 0, style, ...rest }: Pr
   const content = (
     <View
       className={`bg-white rounded-2xl p-5 border border-cloud-200 ${className}`}
-      style={[
-        {
-          shadowColor: '#1F2430',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.06,
-          shadowRadius: 16,
-          elevation: 2,
-        },
-        style,
-      ]}
+      style={[shadows.md, style]}
       {...rest}
     >
       {children}

@@ -11,7 +11,10 @@ import { EntryRow } from '../../components/EntryRow';
 import { EmptyState } from '../../components/EmptyState';
 import { SkeletonCard } from '../../components/Skeleton';
 import { getEntriesForUser } from '../../services/entries';
-import { DailyEntry } from '../../types';
+import { getMetricsForOwner } from '../../services/metrics';
+import { getGoals } from '../../services/goals';
+import { useAuth } from '../../context/AuthContext';
+import { DailyEntry, Metric } from '../../types';
 import { sortByDateDesc } from '../../utils/stats';
 import { colors } from '../../theme/colors';
 
@@ -20,7 +23,10 @@ type Tab = 'stats' | 'history';
 
 export function StudentDetailScreen({ route, navigation }: Props) {
   const { studentId, studentName } = route.params;
+  const { user } = useAuth();
   const [entries, setEntries] = useState<DailyEntry[]>([]);
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [targets, setTargets] = useState<Record<string, number>>({});
   const [tab, setTab] = useState<Tab>('stats');
   const [loading, setLoading] = useState(true);
 
@@ -28,14 +34,23 @@ export function StudentDetailScreen({ route, navigation }: Props) {
     (async () => {
       setLoading(true);
       try {
-        setEntries(await getEntriesForUser(studentId));
+        // The devotee is assigned to this mentor, so the mentor's own metric
+        // set defines the labels/units for their data.
+        const [e, m, g] = await Promise.all([
+          getEntriesForUser(studentId),
+          getMetricsForOwner(user?.id ?? null),
+          getGoals(studentId),
+        ]);
+        setEntries(e);
+        setMetrics(m);
+        setTargets(g?.targets ?? {});
       } catch {
         // Render the empty state instead of hanging.
       } finally {
         setLoading(false);
       }
     })();
-  }, [studentId]);
+  }, [studentId, user]);
 
   const history = useMemo(() => sortByDateDesc(entries), [entries]);
 
@@ -84,11 +99,13 @@ export function StudentDetailScreen({ route, navigation }: Props) {
             <SkeletonCard />
           </View>
         ) : tab === 'stats' ? (
-          <StatsView entries={entries} />
+          <StatsView entries={entries} metrics={metrics} targets={targets} />
         ) : history.length === 0 ? (
           <EmptyState icon="time-outline" title="No entries yet" />
         ) : (
-          history.map((entry, i) => <EntryRow key={entry.id} entry={entry} index={i} />)
+          history.map((entry, i) => (
+            <EntryRow key={entry.id} entry={entry} metrics={metrics} index={i} />
+          ))
         )}
       </ScrollView>
     </SafeAreaView>

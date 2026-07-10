@@ -10,7 +10,8 @@ import { EmptyState } from '../components/EmptyState';
 import { SkeletonCard } from '../components/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import { getEntriesForUser } from '../services/entries';
-import { DailyEntry, HistoryFilter } from '../types';
+import { getMetricsForUser } from '../services/metrics';
+import { DailyEntry, HistoryFilter, Metric } from '../types';
 import { filterEntries, sortByDateDesc } from '../utils/stats';
 
 const FILTERS: { label: string; value: HistoryFilter }[] = [
@@ -22,6 +23,7 @@ const FILTERS: { label: string; value: HistoryFilter }[] = [
 export function HistoryScreen() {
   const { user } = useAuth();
   const [entries, setEntries] = useState<DailyEntry[]>([]);
+  const [metrics, setMetrics] = useState<Metric[]>([]);
   const [filter, setFilter] = useState<HistoryFilter>('7d');
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +31,9 @@ export function HistoryScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      setEntries(await getEntriesForUser(user.id));
+      const [e, m] = await Promise.all([getEntriesForUser(user.id), getMetricsForUser(user)]);
+      setEntries(e);
+      setMetrics(m);
     } catch {
       // Leave existing entries; the empty state / list still renders.
     } finally {
@@ -72,7 +76,7 @@ export function HistoryScreen() {
       ) : (
         <View>
           {visible.map((entry, i) => (
-            <EntryRow key={entry.id} entry={entry} index={i} />
+            <EntryRow key={entry.id} entry={entry} metrics={metrics} index={i} />
           ))}
         </View>
       )}
