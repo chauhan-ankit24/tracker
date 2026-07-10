@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, Alert, Linking } from 'react-native';
 import Constants from 'expo-constants';
+import * as Updates from 'expo-updates';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import * as Clipboard from 'expo-clipboard';
 import { Ionicons } from '@expo/vector-icons';
@@ -188,8 +189,17 @@ export function ProfileScreen() {
       </PressableScale>
 
       <Text className="text-xs text-ink-400 text-center mt-8">
-        Bhakti Tracker v{Constants.expoConfig?.version ?? '1.0.0'}
+        Bhakti Tracker v{Constants.expoConfig?.version ?? '?'}
+        {typeof Constants.expoConfig?.android?.versionCode === 'number'
+          ? ` (${Constants.expoConfig.android.versionCode})`
+          : ''}
+        {' · '}questionnaires build
       </Text>
+      {!__DEV__ && Updates.isEnabled ? (
+        <Text className="text-xs text-ink-300 text-center mt-1">
+          channel {Updates.channel ?? '—'} · update {Updates.updateId?.slice(0, 8) ?? 'embedded'}
+        </Text>
+      ) : null}
     </ScreenContainer>
   );
 }
