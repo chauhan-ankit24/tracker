@@ -2,15 +2,13 @@
   "expo": {
     "name": "Bhakti Tracker",
     "slug": "bhakti-tracker",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "bhaktitracker",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.0",
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -28,7 +26,7 @@
     },
     "android": {
       "package": "com.bhakti.tracker",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#FBEAD0"
@@ -50,7 +48,8 @@
     },
     "owner": "ankit24",
     "updates": {
-      "url": "https://u.expo.dev/7ec6f4de-b2c7-4325-ac62-f51e15d3596c"
+      "url": "https://u.expo.dev/7ec6f4de-b2c7-4325-ac62-f51e15d3596c",
+      "fallbackToCacheTimeout": 0
     }
   }
 }
