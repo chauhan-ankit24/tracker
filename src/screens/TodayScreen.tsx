@@ -6,11 +6,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { NumberStepper } from '../components/NumberStepper';
+import { ScaleInput } from '../components/ScaleInput';
 import { Button } from '../components/Button';
 import { Skeleton } from '../components/Skeleton';
+import { EmptyState } from '../components/EmptyState';
+import { TodayQuestionnaires } from '../components/TodayQuestionnaires';
+import { EkadasiBanner } from '../components/EkadasiBanner';
 import { useAuth } from '../context/AuthContext';
 import { getTodayEntry, saveTodayEntry } from '../services/entries';
-import { syncDailyReminders } from '../services/notifications';
+import { getMetricsForUser, activeMetrics } from '../services/metrics';
+import { syncDailyReminders, syncEkadasiReminders } from '../services/notifications';
+import { EKADASI_DATES } from '../data/ekadasi';
+import { Metric } from '../types';
 import { formatToday } from '../utils/date';
 import { colors } from '../theme/colors';
 
@@ -22,31 +29,40 @@ function errCode(e: unknown): string {
 
 export function TodayScreen() {
   const { user } = useAuth();
-  const [rounds, setRounds] = useState(0);
-  const [minutes, setMinutes] = useState(0);
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  const [values, setValues] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [alreadyLogged, setAlreadyLogged] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState('');
 
+  const shown = activeMetrics(metrics);
+
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError('');
     try {
-      const entry = await getTodayEntry(user.id);
+      const [ms, entry] = await Promise.all([
+        getMetricsForUser(user),
+        getTodayEntry(user.id),
+      ]);
+      setMetrics(ms);
       if (entry) {
-        setRounds(entry.chantingRounds);
-        setMinutes(entry.readingMinutes);
+        setValues(entry.values ?? {});
         setAlreadyLogged(true);
+      } else {
+        setValues({});
+        setAlreadyLogged(false);
       }
       // Devotees get evening reminders; skip tonight's if already logged.
       if (user.role === 'user') {
         syncDailyReminders(!!entry).catch(() => {});
       }
+      // Ekadasi reminders are relevant to everyone (mentors observe too).
+      syncEkadasiReminders(EKADASI_DATES).catch(() => {});
     } catch (e) {
-      // Never leave the screen stuck on skeletons — show the inputs anyway.
       setError(`Couldn't load today's entry${errCode(e)}. Check your connection and Firestore rules.`);
     } finally {
       setLoading(false);
@@ -57,16 +73,24 @@ export function TodayScreen() {
     load();
   }, [load]);
 
+  const setValue = (id: string, n: number) => setValues((v) => ({ ...v, [id]: n }));
+
   const onSave = async () => {
     if (!user) return;
     setSaving(true);
     setError('');
     try {
-      await saveTodayEntry({ userId: user.id, chantingRounds: rounds, readingMinutes: minutes });
+      // Persist every active counter (0 counts as a tracked day) and any rated
+      // scale. Metrics left blank on a scale aren't stored.
+      const payload: Record<string, number> = {};
+      shown.forEach((m) => {
+        const v = values[m.id] ?? 0;
+        if (m.type === 'counter' || v > 0) payload[m.id] = v;
+      });
+      await saveTodayEntry({ userId: user.id, values: payload });
       setAlreadyLogged(true);
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 2200);
-      // Today is now logged — drop tonight's reminder.
       if (user.role === 'user') {
         syncDailyReminders(true).catch(() => {});
       }
@@ -94,7 +118,7 @@ export function TodayScreen() {
       ) : (
         <Animated.View entering={FadeIn.duration(400)} className="mb-4">
           <Text className="text-sm text-ink-400 leading-5">
-            Takes just a few seconds — enter today's counts and tap save.
+            Takes just a few seconds — fill in today's practice and tap save.
           </Text>
         </Animated.View>
       )}
@@ -114,41 +138,42 @@ export function TodayScreen() {
           <Skeleton height={150} radius={12} />
           <Skeleton height={150} radius={12} />
         </View>
+      ) : shown.length === 0 ? (
+        <EmptyState
+          icon="clipboard-outline"
+          title="Nothing to log yet"
+          subtitle="Your mentor hasn't set up any daily questions."
+        />
       ) : (
         <View className="gap-4">
-          <Animated.View entering={FadeInDown.duration(420).delay(80)}>
-            <NumberStepper
-              label="Chanting rounds"
-              icon="ellipse-outline"
-              value={rounds}
-              onChange={setRounds}
-              max={200}
-              presets={[
-                { label: '+4', value: 4, type: 'add' },
-                { label: '+8', value: 8, type: 'add' },
-                { label: '16 Rounds', value: 16, type: 'set' },
-              ]}
-            />
-          </Animated.View>
+          {shown.map((m, i) => (
+            <Animated.View
+              key={m.id}
+              entering={FadeInDown.duration(420).delay(80 + i * 80)}
+            >
+              {m.type === 'scale' ? (
+                <ScaleInput
+                  label={m.label}
+                  icon={m.icon ?? 'star-outline'}
+                  value={values[m.id] ?? 0}
+                  onChange={(n) => setValue(m.id, n)}
+                />
+              ) : (
+                <NumberStepper
+                  label={m.label}
+                  icon={m.icon ?? 'ellipse-outline'}
+                  value={values[m.id] ?? 0}
+                  onChange={(n) => setValue(m.id, n)}
+                  step={m.step ?? 1}
+                  max={m.max ?? 999}
+                  unit={m.unit}
+                  presets={m.presets}
+                />
+              )}
+            </Animated.View>
+          ))}
 
-          <Animated.View entering={FadeInDown.duration(420).delay(160)}>
-            <NumberStepper
-              label="Reading minutes"
-              icon="book-outline"
-              value={minutes}
-              onChange={setMinutes}
-              step={5}
-              max={720}
-              unit="min"
-              presets={[
-                { label: '+15m', value: 15, type: 'add' },
-                { label: '+30m', value: 30, type: 'add' },
-                { label: '+60m', value: 60, type: 'add' },
-              ]}
-            />
-          </Animated.View>
-
-          <Animated.View entering={FadeInDown.duration(420).delay(240)} className="mt-2">
+          <Animated.View entering={FadeInDown.duration(420).delay(80 + shown.length * 80)} className="mt-2">
             <Button
               label={justSaved ? 'Saved' : alreadyLogged ? 'Update Entry' : 'Save Entry'}
               icon={justSaved ? 'checkmark' : 'save-outline'}
@@ -158,6 +183,12 @@ export function TodayScreen() {
           </Animated.View>
         </View>
       )}
+
+      {/* Upcoming Ekadasi — shown to everyone. */}
+      <EkadasiBanner />
+
+      {/* Devotees see today's reflection questions from their mentor here. */}
+      {user?.role === 'user' ? <TodayQuestionnaires user={user} /> : null}
     </ScreenContainer>
   );
 }

@@ -10,6 +10,10 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 import { StudentsScreen } from '../screens/admin/StudentsScreen';
 import { StudentDetailScreen } from '../screens/admin/StudentDetailScreen';
 import { ApprovalsScreen } from '../screens/admin/ApprovalsScreen';
+import { QuestionnairesScreen } from '../screens/admin/QuestionnairesScreen';
+import { QuestionnaireEditorScreen } from '../screens/admin/QuestionnaireEditorScreen';
+import { QuestionnaireResponsesScreen } from '../screens/admin/QuestionnaireResponsesScreen';
+import { MetricsEditorScreen } from '../screens/admin/MetricsEditorScreen';
 
 const Tab = createBottomTabNavigator<AdminTabParamList>();
 const Stack = createNativeStackNavigator<AdminStackParamList>();
@@ -24,6 +28,7 @@ function AdminTabs() {
     >
       <Tab.Screen name="Today" component={TodayScreen} />
       <Tab.Screen name="Students" component={StudentsScreen} />
+      <Tab.Screen name="Questions" component={QuestionnairesScreen} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -37,6 +42,9 @@ export function AdminNavigator() {
       <Stack.Screen name="Tabs" component={AdminTabs} />
       <Stack.Screen name="StudentDetail" component={StudentDetailScreen} />
       <Stack.Screen name="Approvals" component={ApprovalsScreen} />
+      <Stack.Screen name="QuestionnaireEditor" component={QuestionnaireEditorScreen} />
+      <Stack.Screen name="QuestionnaireResponses" component={QuestionnaireResponsesScreen} />
+      <Stack.Screen name="MetricsEditor" component={MetricsEditorScreen} />
     </Stack.Navigator>
   );
 }

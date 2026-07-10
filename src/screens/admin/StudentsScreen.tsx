@@ -13,10 +13,12 @@ import { SkeletonCard } from '../../components/Skeleton';
 import { Avatar } from '../../components/Avatar';
 import { PressableScale } from '../../components/PressableScale';
 import { useAuth } from '../../context/AuthContext';
-import { getStudentsForAdmin } from '../../services/entries';
+import { getStudentsForAdmin, getLastEntryDate } from '../../services/entries';
 import { AppUser } from '../../types';
 import { AdminStackParamList } from '../../navigation/types';
+import { Activity, ACTIVITY_META, classifyActivity, lastSeenLabel } from '../../utils/activity';
 import { colors } from '../../theme/colors';
+import { shadows } from '../../theme/elevation';
 
 type Nav = NativeStackNavigationProp<AdminStackParamList, 'Tabs'>;
 
@@ -24,6 +26,7 @@ export function StudentsScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<Nav>();
   const [students, setStudents] = useState<AppUser[]>([]);
+  const [activity, setActivity] = useState<Record<string, Activity>>({});
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -31,10 +34,17 @@ export function StudentsScreen() {
     if (!user) return;
     setLoading(true);
     try {
-      setStudents(await getStudentsForAdmin(user.id));
+      const studs = await getStudentsForAdmin(user.id);
+      setStudents(studs);
+      setLoading(false);
+      // Activity fills in after the list is already visible — one lightweight
+      // last-entry query per devotee, run in parallel.
+      const dates = await Promise.all(studs.map((s) => getLastEntryDate(s.id).catch(() => null)));
+      const map: Record<string, Activity> = {};
+      studs.forEach((s, i) => (map[s.id] = classifyActivity(dates[i])));
+      setActivity(map);
     } catch {
       // Show the empty state rather than an endless spinner.
-    } finally {
       setLoading(false);
     }
   }, [user]);
@@ -51,6 +61,11 @@ export function StudentsScreen() {
     return [...list].sort((a, b) => a.name.localeCompare(b.name));
   }, [students, search]);
 
+  const atRiskCount = useMemo(
+    () => Object.values(activity).filter((a) => a.status === 'atRisk').length,
+    [activity],
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-cloud-100" edges={['top']}>
       <ScrollView
@@ -64,7 +79,14 @@ export function StudentsScreen() {
           />
         }
       >
-        <ScreenHeader title="Devotees" subtitle={`${students.length} assigned to you`} />
+        <ScreenHeader
+          title="Devotees"
+          subtitle={
+            atRiskCount
+              ? `${students.length} assigned · ${atRiskCount} need follow-up`
+              : `${students.length} assigned to you`
+          }
+        />
 
         <View className="flex-row items-center bg-white rounded-2xl px-4 border border-cloud-300 mb-5">
           <Ionicons name="search-outline" size={18} color={colors.ink[400]} />
@@ -103,6 +125,7 @@ export function StudentsScreen() {
             <StudentRow
               key={student.id}
               student={student}
+              activity={activity[student.id]}
               index={i}
               onPress={() =>
                 navigation.navigate('StudentDetail', {
@@ -120,33 +143,49 @@ export function StudentsScreen() {
 
 function StudentRow({
   student,
+  activity,
   index,
   onPress,
 }: {
   student: AppUser;
+  activity?: Activity;
   index: number;
   onPress: () => void;
 }) {
+  const meta = activity ? ACTIVITY_META[activity.status] : null;
   return (
     <Animated.View entering={FadeInDown.duration(360).delay(Math.min(index, 8) * 50)}>
       <PressableScale
         onPress={onPress}
         activeScale={0.97}
         className="flex-row items-center bg-white rounded-2xl px-4 py-3.5 mb-3 border border-cloud-200"
-        style={{
-          shadowColor: '#1F2430',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.04,
-          shadowRadius: 10,
-          elevation: 1,
-        }}
+        style={shadows.sm}
       >
         <View className="mr-3">
           <Avatar name={student.name} avatarId={student.avatar} size={44} />
+          {meta ? (
+            // Traffic-light dot on the avatar corner.
+            <View
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white"
+              style={{ backgroundColor: meta.color }}
+            />
+          ) : null}
         </View>
         <View className="flex-1">
           <Text className="text-sm font-semibold text-ink-900">{student.name}</Text>
           <Text className="text-xs text-ink-400 mt-0.5">{student.email}</Text>
+          {activity && meta ? (
+            <View className="flex-row items-center mt-1">
+              <View
+                className="w-1.5 h-1.5 rounded-full mr-1.5"
+                style={{ backgroundColor: meta.color }}
+              />
+              <Text className="text-xs font-medium" style={{ color: meta.color }}>
+                {meta.label}
+              </Text>
+              <Text className="text-xs text-ink-400"> · {lastSeenLabel(activity)}</Text>
+            </View>
+          ) : null}
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.ink[400]} />
       </PressableScale>

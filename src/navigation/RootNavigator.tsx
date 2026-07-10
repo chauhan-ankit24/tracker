@@ -4,7 +4,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 
 import { useAuth } from '../context/AuthContext';
 import { AuthNavigator } from './AuthNavigator';
-import { UserTabs } from './UserTabs';
+import { UserNavigator } from './UserNavigator';
 import { AdminNavigator } from './AdminNavigator';
 import { VerifyEmailScreen } from '../screens/auth/VerifyEmailScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
@@ -44,6 +44,6 @@ export function RootNavigator() {
     // Mentors must be approved by the owner before they get mentor features.
     if (isPendingMentor(user)) return <PendingApprovalScreen />;
     if (user.role === 'admin') return <AdminNavigator />;
-    return <UserTabs />;
+    return <UserNavigator />;
   }
 }

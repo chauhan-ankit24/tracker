@@ -99,6 +99,14 @@ export function SignupScreen({ navigation }: Props) {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.duration(500).delay(120)}>
+            {/* Lead with Google — the most-used sign-up path. */}
+            {!isExpoGo ? (
+              <>
+                <GoogleButton onPress={onGoogle} loading={googleLoading} />
+                <OrDivider label="or sign up with email" />
+              </>
+            ) : null}
+
             <TextField
               label="Full name"
               icon="person-outline"
@@ -172,13 +180,6 @@ export function SignupScreen({ navigation }: Props) {
             ) : null}
 
             <Button label="Create Account" onPress={onSubmit} loading={loading} className="mt-1" />
-
-            {!isExpoGo ? (
-              <>
-                <OrDivider />
-                <GoogleButton onPress={onGoogle} loading={googleLoading} />
-              </>
-            ) : null}
 
             <View className="flex-row justify-center mt-6">
               <Text className="text-sm text-ink-400">Already have an account? </Text>

@@ -105,18 +105,117 @@ service cloud.firestore {
         && request.resource.data.userId == request.auth.uid
         // one entry per user per day is enforced by the deterministic id
         && entryId == request.auth.uid + '_' + request.resource.data.date
-        // shape + sane bounds so no junk/oversized data can be stored
+        // shape check — metric values are a map keyed by metric id. Per-value
+        // bounds are enforced in-app (dynamic keys can't be checked here).
         && request.resource.data.keys().hasOnly(
-             ['id', 'userId', 'date', 'chantingRounds', 'readingMinutes', 'createdAt', 'updatedAt'])
+             ['id', 'userId', 'date', 'values', 'createdAt', 'updatedAt'])
         && request.resource.data.date is string
-        && request.resource.data.chantingRounds is int
-        && request.resource.data.chantingRounds >= 0
-        && request.resource.data.chantingRounds <= 1000
-        && request.resource.data.readingMinutes is int
-        && request.resource.data.readingMinutes >= 0
-        && request.resource.data.readingMinutes <= 1440;
+        && request.resource.data.values is map;
       // Users may delete their own entries (used during account removal).
       allow delete: if isSignedIn() && ownerFromId() == request.auth.uid;
+    }
+
+    // A mentor's daily-metric configuration (their "quick questions"). Doc id
+    // is the mentor's uid. Readable by that mentor and by the devotees assigned
+    // to them (so their Today screen knows what to log); writable only by the
+    // owning mentor.
+    match /metricSets/{adminId} {
+      allow read: if isSignedIn() && (
+        adminId == request.auth.uid ||
+        userDoc(request.auth.uid).adminId == adminId
+      );
+      allow write: if isSignedIn()
+        && adminId == request.auth.uid
+        && userDoc(request.auth.uid).role == 'admin'
+        && request.resource.data.adminId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['adminId', 'metrics', 'updatedAt'])
+        && request.resource.data.metrics is list
+        && request.resource.data.metrics.size() <= 30;
+    }
+
+    // A user's personal daily goals (targets per metric). Doc id is the user's
+    // uid. Readable by the user and by their mentor (adherence on the student
+    // detail screen); writable only by the user themselves.
+    match /goals/{userId} {
+      // Owner reads their own; a mentor reads a devotee's — authorized from the
+      // users collection so a not-yet-created goals doc still resolves cleanly.
+      allow get: if isSignedIn() && (
+        userId == request.auth.uid ||
+        userDoc(userId).adminId == request.auth.uid
+      );
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.adminId == request.auth.uid
+      );
+      allow write: if isSignedIn()
+        && userId == request.auth.uid
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['userId', 'adminId', 'targets', 'updatedAt'])
+        && request.resource.data.targets is map;
+    }
+
+    // Mentor questionnaires. Visible to their owner (adminId == uid) and to the
+    // devotees assigned to that mentor — never to other mentors' groups.
+    match /questionnaires/{qid} {
+      allow get, list: if isSignedIn() && (
+        resource.data.adminId == request.auth.uid ||
+        resource.data.adminId == userDoc(request.auth.uid).adminId
+      );
+
+      // A mentor may only create questionnaires they own. Light shape checks
+      // keep out junk; the nested questions/schedule are validated in-app.
+      allow create: if isSignedIn()
+        && request.resource.data.adminId == request.auth.uid
+        && userDoc(request.auth.uid).role == 'admin'
+        && request.resource.data.keys().hasOnly(
+             ['id', 'adminId', 'title', 'questions', 'schedule',
+              'isTemplate', 'active', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.questions is list
+        && request.resource.data.questions.size() >= 1
+        && request.resource.data.questions.size() <= 50
+        && request.resource.data.isTemplate is bool
+        && request.resource.data.active is bool;
+
+      // The owner may edit or delete; ownership can't be transferred away.
+      allow update: if isSignedIn()
+        && resource.data.adminId == request.auth.uid
+        && request.resource.data.adminId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.adminId == request.auth.uid;
+    }
+
+    // Student responses to questionnaires. Owner is encoded in the id
+    // ("{questionnaireId}_{uid}_{date}") so the not-yet-created doc still
+    // authorizes; the mentor reads via the denormalized adminId field.
+    match /responses/{responseId} {
+      function respOwner() {
+        return responseId.split('_')[1];
+      }
+      allow get: if isSignedIn() && (
+        respOwner() == request.auth.uid ||
+        (resource != null && resource.data.adminId == request.auth.uid)
+      );
+      // Queries authorize by field so `where` filters are provably safe.
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.adminId == request.auth.uid
+      );
+      allow create, update: if isSignedIn()
+        && request.auth.token.email_verified == true
+        && request.resource.data.userId == request.auth.uid
+        // one response per student per questionnaire per day via the id
+        && responseId == request.resource.data.questionnaireId + '_'
+             + request.auth.uid + '_' + request.resource.data.date
+        // the denormalized mentor must be the student's actual mentor
+        && request.resource.data.adminId == userDoc(request.auth.uid).adminId
+        && request.resource.data.keys().hasOnly(
+             ['id', 'questionnaireId', 'adminId', 'userId', 'date',
+              'answers', 'createdAt', 'updatedAt'])
+        && request.resource.data.date is string
+        && request.resource.data.answers is map;
+      allow delete: if isSignedIn() && respOwner() == request.auth.uid;
     }
   }
 }

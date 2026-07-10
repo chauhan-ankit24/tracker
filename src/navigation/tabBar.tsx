@@ -31,6 +31,7 @@ export function tabIcon(routeName: string) {
     Dashboard: ['stats-chart', 'stats-chart-outline'],
     Profile: ['person', 'person-outline'],
     Students: ['people', 'people-outline'],
+    Questions: ['clipboard', 'clipboard-outline'],
   };
   return ({ focused, color, size }: { focused: boolean; color: string; size: number }) => {
     const [active, inactive] = map[routeName] ?? ['ellipse', 'ellipse-outline'];
