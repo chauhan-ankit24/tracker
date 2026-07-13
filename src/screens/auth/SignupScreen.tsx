@@ -103,7 +103,6 @@ export function SignupScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <Text>hello</Text>
           <Animated.View
             entering={FadeInDown.duration(500)}
             className="items-center mb-6"
