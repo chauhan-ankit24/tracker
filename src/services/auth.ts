@@ -1,22 +1,22 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  signOut as fbSignOut,
   sendEmailVerification,
   signInWithEmailAndPassword,
-  signOut as fbSignOut,
   updateProfile,
-} from 'firebase/auth';
-import { deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+} from "firebase/auth";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
-import { auth, db } from '../config/firebase';
-import { isOwner } from '../config/app';
-import { deleteAllEntriesForUser, getStudentsForAdmin } from './entries';
-import { createMentorCode, resolveMentorCode } from './mentors';
-import { normalizeMentorCode } from '../utils/mentorCode';
-import { isApprovedMentor } from '../utils/roles';
-import { AppUser, Role } from '../types';
+import { isOwner } from "../config/app";
+import { auth, db } from "../config/firebase";
+import { AppUser, Role } from "../types";
+import { normalizeMentorCode } from "../utils/mentorCode";
+import { isApprovedMentor } from "../utils/roles";
+import { deleteAllEntriesForUser, getStudentsForAdmin } from "./entries";
+import { createMentorCode, resolveMentorCode } from "./mentors";
 
-const USERS = 'users';
+const USERS = "users";
 
 /** Thrown for validation problems we raise ourselves (not from Firebase). */
 export class AppAuthError extends Error {
@@ -31,11 +31,14 @@ export class AppAuthError extends Error {
 export async function fetchUserProfile(uid: string): Promise<AppUser | null> {
   const snap = await getDoc(doc(db, USERS, uid));
   if (!snap.exists()) return null;
-  return { id: uid, ...(snap.data() as Omit<AppUser, 'id'>) };
+  return { id: uid, ...(snap.data() as Omit<AppUser, "id">) };
 }
 
 /** Updates just the user's chosen avatar id. */
-export async function updateUserAvatar(uid: string, avatar: string): Promise<void> {
+export async function updateUserAvatar(
+  uid: string,
+  avatar: string,
+): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { avatar });
 }
 
@@ -62,27 +65,45 @@ export async function writeUserProfile({
   role,
   mentorCodeInput,
 }: ProfileInput): Promise<AppUser> {
-  let profile: Omit<AppUser, 'id'>;
+  let profile: Omit<AppUser, "id">;
 
-  if (role === 'user') {
-    const code = normalizeMentorCode(mentorCodeInput ?? '');
-    const mentorId = code ? await resolveMentorCode(code) : null;
+  const code = normalizeMentorCode(mentorCodeInput ?? "");
+  const mentorId = code ? await resolveMentorCode(code) : null;
+
+  if (role === "user") {
     if (!mentorId) {
-      throw new AppAuthError('app/invalid-mentor', 'Invalid mentor code.');
+      throw new AppAuthError("app/invalid-mentor", "Invalid mentor code.");
     }
     const mentor = await fetchUserProfile(mentorId).catch(() => null);
     if (!mentor || !isApprovedMentor(mentor)) {
-      throw new AppAuthError('app/mentor-not-approved', 'That mentor is not active yet.');
+      throw new AppAuthError(
+        "app/mentor-not-approved",
+        "That mentor is not active yet.",
+      );
     }
-    profile = { name: name.trim(), email: email.trim(), role, adminId: mentorId };
+    profile = {
+      name: name.trim(),
+      email: email.trim(),
+      role,
+      adminId: mentorId,
+    };
   } else {
+    if (mentorId) {
+      const mentor = await fetchUserProfile(mentorId).catch(() => null);
+      if (!mentor || !isApprovedMentor(mentor)) {
+        throw new AppAuthError(
+          "app/mentor-not-approved",
+          "That mentor is not active yet.",
+        );
+      }
+    }
     // Mentor: owner is auto-approved, everyone else awaits approval.
     const mentorCode = await createMentorCode(uid);
     profile = {
       name: name.trim(),
       email: email.trim(),
       role,
-      adminId: null,
+      adminId: mentorId || null,
       approved: isOwner(uid),
       rejected: false,
       mentorCode,
@@ -106,13 +127,17 @@ export async function signUp({
   name,
   email,
   password,
-  role = 'user',
-  mentorCode = '',
+  role = "user",
+  mentorCode = "",
 }: SignUpInput): Promise<AppUser> {
   // Firebase enforces one account per email; this throws auth/email-already-in-use
   // if the address is taken. Creating the user also signs us in, which is what
   // lets the mentor-code lookup below pass Firestore's auth check.
-  const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  const cred = await createUserWithEmailAndPassword(
+    auth,
+    email.trim(),
+    password,
+  );
 
   try {
     await updateProfile(cred.user, { displayName: name.trim() });
@@ -147,11 +172,12 @@ export async function completeOnboarding(input: {
   mentorCode?: string;
 }): Promise<AppUser> {
   const current = auth.currentUser;
-  if (!current) throw new AppAuthError('app/no-session', 'You are not signed in.');
+  if (!current)
+    throw new AppAuthError("app/no-session", "You are not signed in.");
   return writeUserProfile({
     uid: current.uid,
-    name: input.name?.trim() || current.displayName || 'Devotee',
-    email: current.email ?? '',
+    name: input.name?.trim() || current.displayName || "Devotee",
+    email: current.email ?? "",
     role: input.role,
     mentorCodeInput: input.mentorCode,
   });
@@ -173,15 +199,16 @@ export async function signOut(): Promise<void> {
  */
 export async function deleteOwnAccount(user: AppUser): Promise<void> {
   const current = auth.currentUser;
-  if (!current) throw new AppAuthError('app/no-session', 'You are not signed in.');
+  if (!current)
+    throw new AppAuthError("app/no-session", "You are not signed in.");
 
-  if (user.role === 'admin') {
+  if (user.role === "admin") {
     const students = await getStudentsForAdmin(user.id);
     if (students.length > 0) {
       throw new AppAuthError(
-        'app/mentor-has-students',
-        `You still have ${students.length} devotee${students.length === 1 ? '' : 's'} assigned to you. ` +
-          'They must move to another mentor before you can delete your account.',
+        "app/mentor-has-students",
+        `You still have ${students.length} devotee${students.length === 1 ? "" : "s"} assigned to you. ` +
+          "They must move to another mentor before you can delete your account.",
       );
     }
   }
@@ -213,38 +240,38 @@ export async function reloadVerificationStatus(): Promise<boolean> {
 
 /** Human-friendly messages for the Firebase auth error codes we expect. */
 export function authErrorMessage(err: unknown): string {
-  const code = (err as { code?: string })?.code ?? '';
+  const code = (err as { code?: string })?.code ?? "";
   switch (code) {
-    case 'app/invalid-mentor':
+    case "app/invalid-mentor":
       return "That mentor code doesn't match any mentor. Please double-check it.";
-    case 'app/mentor-not-approved':
-      return 'That mentor is not active yet. Please try again once they are approved.';
-    case 'app/mentor-has-students':
+    case "app/mentor-not-approved":
+      return "That mentor is not active yet. Please try again once they are approved.";
+    case "app/mentor-has-students":
       // Surface the specific count-aware message we raised.
       return (err as Error).message;
-    case 'auth/requires-recent-login':
-      return 'For your security, please sign out and sign in again, then delete your account.';
-    case 'app/google-unavailable':
+    case "auth/requires-recent-login":
+      return "For your security, please sign out and sign in again, then delete your account.";
+    case "app/google-unavailable":
       return (err as Error).message;
-    case 'app/google-cancelled':
-      return '';
-    case 'auth/account-exists-with-different-credential':
-      return 'An account with this email already exists. Sign in with your email and password instead.';
-    case 'auth/invalid-email':
-      return 'That email address looks invalid.';
-    case 'auth/email-already-in-use':
-      return 'An account already exists for this email.';
-    case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
-    case 'auth/invalid-credential':
-    case 'auth/wrong-password':
-    case 'auth/user-not-found':
-      return 'Incorrect email or password.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts. Please try again later.';
-    case 'auth/network-request-failed':
-      return 'Network error. Check your connection.';
+    case "app/google-cancelled":
+      return "";
+    case "auth/account-exists-with-different-credential":
+      return "An account with this email already exists. Sign in with your email and password instead.";
+    case "auth/invalid-email":
+      return "That email address looks invalid.";
+    case "auth/email-already-in-use":
+      return "An account already exists for this email.";
+    case "auth/weak-password":
+      return "Password should be at least 6 characters.";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Incorrect email or password.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please try again later.";
+    case "auth/network-request-failed":
+      return "Network error. Check your connection.";
     default:
-      return 'Something went wrong. Please try again.';
+      return "Something went wrong. Please try again.";
   }
 }
