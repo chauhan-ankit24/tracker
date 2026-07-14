@@ -1,4 +1,4 @@
-import { NavigatorScreenParams } from '@react-navigation/native';
+import { NavigatorScreenParams } from "@react-navigation/native";
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -8,6 +8,7 @@ export type AuthStackParamList = {
 export type UserTabParamList = {
   Today: undefined;
   History: undefined;
+  Settings: undefined;
   Dashboard: undefined;
   Profile: undefined;
 };
@@ -34,12 +35,14 @@ export type AdminStackParamList = {
    * Create or edit a questionnaire. Pass an existing `questionnaireId` to edit,
    * `duplicateFrom` to clone one, or `starter` to seed from a starter template.
    */
-  QuestionnaireEditor: {
-    questionnaireId?: string;
-    duplicateFrom?: string;
-    starter?: string;
-    asTemplate?: boolean;
-  } | undefined;
+  QuestionnaireEditor:
+    | {
+        questionnaireId?: string;
+        duplicateFrom?: string;
+        starter?: string;
+        asTemplate?: boolean;
+      }
+    | undefined;
   QuestionnaireResponses: { questionnaireId: string; title: string };
   /** Mentor configures the daily quick questions (metrics) devotees log. */
   MetricsEditor: undefined;
