@@ -1,25 +1,26 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from "@expo/vector-icons";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import React, { useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { AdminStackParamList } from '../../navigation/types';
-import { StatsView } from '../../components/StatsView';
-import { SegmentedControl } from '../../components/SegmentedControl';
-import { EntryRow } from '../../components/EntryRow';
-import { EmptyState } from '../../components/EmptyState';
-import { SkeletonCard } from '../../components/Skeleton';
-import { getEntriesForUser } from '../../services/entries';
-import { getMetricsForOwner } from '../../services/metrics';
-import { getGoals } from '../../services/goals';
-import { useAuth } from '../../context/AuthContext';
-import { DailyEntry, Metric } from '../../types';
-import { sortByDateDesc } from '../../utils/stats';
-import { colors } from '../../theme/colors';
+import { EmptyState } from "../../components/EmptyState";
+import { EntryRow } from "../../components/EntryRow";
+import { SegmentedControl } from "../../components/SegmentedControl";
+import { SkeletonCard } from "../../components/Skeleton";
+import { StatsView } from "../../components/StatsView";
+import { useAuth } from "../../context/AuthContext";
+import { AdminStackParamList } from "../../navigation/types";
+import { getEntriesForUser } from "../../services/entries";
+import { getGoals } from "../../services/goals";
+import { getMetricsForOwner } from "../../services/metrics";
+import { colors } from "../../theme/colors";
+import { DailyEntry, Metric } from "../../types";
+import { sortByDateDesc } from "../../utils/stats";
+import { UserSettings } from "../UserSettings";
 
-type Props = NativeStackScreenProps<AdminStackParamList, 'StudentDetail'>;
-type Tab = 'stats' | 'history';
+type Props = NativeStackScreenProps<AdminStackParamList, "StudentDetail">;
+type Tab = "stats" | "history" | "userSettings";
 
 export function StudentDetailScreen({ route, navigation }: Props) {
   const { studentId, studentName } = route.params;
@@ -27,7 +28,7 @@ export function StudentDetailScreen({ route, navigation }: Props) {
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [metrics, setMetrics] = useState<Metric[]>([]);
   const [targets, setTargets] = useState<Record<string, number>>({});
-  const [tab, setTab] = useState<Tab>('stats');
+  const [tab, setTab] = useState<Tab>("stats");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export function StudentDetailScreen({ route, navigation }: Props) {
   const history = useMemo(() => sortByDateDesc(entries), [entries]);
 
   return (
-    <SafeAreaView className="flex-1 bg-cloud-100" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-cloud-100" edges={["top"]}>
       {/* Header */}
       <View className="flex-row items-center px-5 pt-2 pb-4">
         <Pressable
@@ -76,8 +77,9 @@ export function StudentDetailScreen({ route, navigation }: Props) {
       <View className="px-5 mb-4">
         <SegmentedControl
           options={[
-            { label: 'Statistics', value: 'stats' },
-            { label: 'History', value: 'history' },
+            { label: "Statistics", value: "stats" },
+            { label: "History", value: "history" },
+            { label: "Settings", value: "userSettings" },
           ]}
           value={tab}
           onChange={setTab}
@@ -86,26 +88,57 @@ export function StudentDetailScreen({ route, navigation }: Props) {
 
       <View className="flex-row items-center px-5 mb-2">
         <Ionicons name="eye-outline" size={13} color={colors.ink[400]} />
-        <Text className="text-xs text-ink-400 ml-1.5">View only — submissions can't be edited</Text>
+        <Text className="text-xs text-ink-400 ml-1.5">
+          View only — submissions can't be edited
+        </Text>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 }}
       >
-        {loading ? (
+        {/* {loading ? (
           <View className="gap-3 mt-2">
             <SkeletonCard />
             <SkeletonCard />
           </View>
-        ) : tab === 'stats' ? (
+        ) : tab === "stats" ? (
           <StatsView entries={entries} metrics={metrics} targets={targets} />
         ) : history.length === 0 ? (
           <EmptyState icon="time-outline" title="No entries yet" />
         ) : (
           history.map((entry, i) => (
-            <EntryRow key={entry.id} entry={entry} metrics={metrics} index={i} />
+            <EntryRow
+              key={entry.id}
+              entry={entry}
+              metrics={metrics}
+              index={i}
+            />
           ))
+        )} */}
+
+        {loading ? (
+          <View className="gap-3 mt-2">
+            <SkeletonCard />
+            <SkeletonCard />
+          </View>
+        ) : tab === "stats" ? (
+          <StatsView entries={entries} metrics={metrics} targets={targets} />
+        ) : tab === "history" ? (
+          history.length === 0 ? (
+            <EmptyState icon="time-outline" title="No entries yet" />
+          ) : (
+            history.map((entry, i) => (
+              <EntryRow
+                key={entry.id}
+                entry={entry}
+                metrics={metrics}
+                index={i}
+              />
+            ))
+          )
+        ) : (
+          <UserSettings />
         )}
       </ScrollView>
     </SafeAreaView>

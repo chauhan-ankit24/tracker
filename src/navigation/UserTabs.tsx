@@ -1,12 +1,13 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import React from "react";
 
-import { UserTabParamList } from './types';
-import { tabScreenOptions, tabIcon } from './tabBar';
-import { TodayScreen } from '../screens/TodayScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
-import { DashboardScreen } from '../screens/DashboardScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
+import { DashboardScreen } from "../screens/DashboardScreen";
+import { HistoryScreen } from "../screens/HistoryScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
+import { TodayScreen } from "../screens/TodayScreen";
+import { UserSettings } from "../screens/UserSettings";
+import { tabIcon, tabScreenOptions } from "./tabBar";
+import { UserTabParamList } from "./types";
 
 const Tab = createBottomTabNavigator<UserTabParamList>();
 
@@ -19,6 +20,7 @@ export function UserTabs() {
       })}
     >
       <Tab.Screen name="Today" component={TodayScreen} />
+      <Tab.Screen name="Settings" component={UserSettings} />
       <Tab.Screen name="History" component={HistoryScreen} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
